@@ -1,3 +1,7 @@
+
+<img width="900" height="860" alt="Screen" src="https://github.com/user-attachments/assets/38b607b2-8c5f-4894-8b17-a1da2c0ab889" />
+
+
 # 🏺 ArcaneForumArch
 > **vBulletin Data Scraper, Media Mirroring & Persistence Engine**
 
@@ -8,9 +12,6 @@
 Automated framework for recursive extraction, parsing, and serialization of vBulletin-based forum instances. This software implements an asynchronous processing pipeline to ensure local persistence of threads, metadata, and multimedia assets.
 
 ---
-
-<img width="1096" height="962" alt="Screen" src="https://github.com/user-attachments/assets/2b09b20f-5c4b-4f18-8975-a2b67f206162" />
-
 
 ## ⚙️ Technical Architecture
 
