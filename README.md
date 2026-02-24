@@ -9,6 +9,9 @@ Automated framework for recursive extraction, parsing, and serialization of vBul
 
 ---
 
+<img width="1096" height="962" alt="Screen" src="https://github.com/user-attachments/assets/2b09b20f-5c4b-4f18-8975-a2b67f206162" />
+
+
 ## ⚙️ Technical Architecture
 
 ### 1. 🔍 Crawling Engine & DOM Parsing
