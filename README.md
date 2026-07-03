@@ -71,3 +71,10 @@ wine python -m PyInstaller --noconfirm --onefile --windowed \
 --hidden-import PIL._imagingtk \
 --hidden-import PIL._tkinter_finder \
 "ArcaneForumArch.py"
+```
+
+## 2.0 version:
+
++Added pdfmerger
++Added site unifier
+Fixed vbulletin bug html unifier
