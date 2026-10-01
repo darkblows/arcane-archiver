@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
 from urllib.parse import urljoin, urlparse, urldefrag
+from urllib.robotparser import RobotFileParser
 from queue import Queue
 
 import requests
@@ -43,6 +44,20 @@ TEXT_MAIN   = "#e8dfc8"
 TEXT_DIM    = "#7a6f8a"
 BORDER_GLOW = "#3d2a6e"
 
+# ─────────────────────────────────────────────
+#  APPLICATION ICON  (Base64-encoded PNG)
+# ─────────────────────────────────────────────
+APP_ICON_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAACMAAAAkCAMAAAA0AnPTAAAA21BMVEUAAACsLy6vCIgTHuM0B7DEMhf4AUbfDDP4BA68AfiGBd3qFhRKAJqRAvS5B769B4NsAPf2Aq3tBhrYB9TlBWbLmhH5Ac75AZH5QgLnBMMqD9LUBjNQAPn8gAJLAe3xCxfqA1/QBOVvA+XuRgbmBabsVwZpBtbeFSw0DMD5AXLr+wP7YAMvAfT5ngTnBO7xA3UQD+W8BeDd6QrxhwjvzwzDBsrSCMnkRgngcg35IgICN/m1+wT3XwT0hAWK6QzNuhP83AP7vQTxbwfz0grY8wnsmg0FF9gGEfr0Au/Qv65QAAAAR3RSTlMABhODEhL6Zvf9jY0G8Usl+/CyjIsa/fz8tUs6/v7X1sLBraqRf2pMJv7+/vXz7uHCqYSEeXJdXDf6+fjw2H9H/vzCss2wb0YrFz8AAAHLSURBVDjLhdLnbqNAFIbhD0zHgCnGYNx7792O03YX7v+KlgmxEyDBzx800kjn5WgQef7LIolZlL8fqeL06YC4QW0yQMxT9bLHd71CpYa4dfXiyNT9mJeUQiWHuEO12z4atyitKbakCsmJD3sDLwh9EOpM3KJWyyM5bMzCq3MWBZjBTAVTaCGBOozDZtbgGrRrNzXSXEbq0qVNWq3hvGOSIa0Cg5S2Q37Ls0r6jlxWWkjbO2Ewz8013TYpqEoPaUVHJjkaaDdo0pIywA/afF2I1mgGS0XBT/ZHgUdkJ4kS0qiuU/fup60otZhUzdu4LRv3Y1PpFWqJoudptQtZYBGhxSV6lUlsi5vX6QHof/WIKlCe+Ln8PeX95b1IvoJxGyXSHw/RXzCfKX9GKwqEIURferaMXlHOXww+Us6jTbHIErzgsXRIW6pM5J9/CqOu5/No9PI6rY6doyzI3LCk20EgiuE7nPih0ymH63W1Wm0263W3K/P1Om9ZnY5rmpIk5W4QI3MayQlM/M7jeLLkQEUGrgHAneWRweBY0LaLLH2uD9XeIQvNWejYNDI15pTuIhs/5PUtsmnhnjU8MC/peMQqdfCIV1LxSL5BIeE/l1srpWeErH0AAAAASUVORK5CYII="
+)
+
+# ─────────────────────────────────────────────
+#  EULA DIALOG ICON  (Base64-encoded PNG)
+# ─────────────────────────────────────────────
+EULA_ICON_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAABYAAAATBAMAAABmV+C7AAAAIVBMVEUAAAD8CQP6BQX5BATyCAj3Bgb+2gD8ggMSDwH7ugL7VQLI/LMfAAAABnRSTlMA/cqPLFqfFBLmAAAAg0lEQVQI12MAAyUGOGAWNICzHQVF4GzFmUIwJqt42sIAKJtRMm2iAJRtWNaRLgxhskildaQJOoDZTJJA9kQFMDtwGZCdJQoxMQ3IzhQCWyoOYqcVGoAsFQOzE0VAJk5LA4FMYbCJYPG0hQ5AEyFsoKkgE8EAZKqgeDkEFAoyKArCgBAA/7Qoe/W/fssAAAAASUVORK5CYII="
+)
+
 RUNE_SYMBOLS = ["᛭","ᚠ","ᚢ","ᚦ","ᚨ","ᚱ","ᚲ","ᚷ","ᚹ","ᚺ","ᚾ","ᛁ","ᛃ","ᛇ",
                 "ᛈ","ᛉ","ᛊ","ᛏ","ᛒ","ᛖ","ᛗ","ᛚ","ᛜ","ᛞ","ᛟ"]
 
@@ -51,6 +66,124 @@ IMAGE_EXTS = {'.jpg','.jpeg','.png','.gif','.webp','.bmp','.svg','.tiff','.avif'
 VIDEO_EXTS = {'.mp4','.webm','.mov','.avi','.mkv','.ogv','.flv','.m4v'}
 AUDIO_EXTS = {'.mp3','.ogg','.wav','.aac','.flac','.m4a','.opus'}
 MEDIA_EXTS = IMAGE_EXTS | VIDEO_EXTS | AUDIO_EXTS
+
+# ─────────────────────────────────────────────
+#  END USER LICENSE AGREEMENT (EULA)
+# ─────────────────────────────────────────────
+EULA_TEXT = """ARCANE FORUM ARCHIVER — END USER LICENSE AGREEMENT ("EULA")
+
+PLEASE READ THIS END USER LICENSE AGREEMENT CAREFULLY BEFORE USING
+THE ARCANE FORUM ARCHIVER SOFTWARE ("SOFTWARE"). BY CLICKING
+"ACCEPT" OR OTHERWISE USING THE SOFTWARE, YOU ACKNOWLEDGE THAT YOU
+HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY ALL TERMS OF THIS
+AGREEMENT. IF YOU DO NOT AGREE, CLICK "DECLINE & EXIT" AND YOU MUST
+NOT USE THE SOFTWARE.
+
+──────────────────────────────────────────────────────────────────
+1. NO WARRANTY
+──────────────────────────────────────────────────────────────────
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-
+INFRINGEMENT. THE AUTHOR MAKES NO WARRANTY THAT THE SOFTWARE WILL
+BE ERROR-FREE, UNINTERRUPTED, SECURE, ACCURATE, OR FREE OF PROBLEMS
+OR OTHER HARMFUL COMPONENTS. YOU USE THE SOFTWARE ENTIRELY AT YOUR
+OWN RISK.
+
+──────────────────────────────────────────────────────────────────
+2. LIMITATION OF LIABILITY
+──────────────────────────────────────────────────────────────────
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT
+SHALL THE AUTHOR, COPYRIGHT HOLDER, OR ANY CONTRIBUTOR BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+CONSEQUENTIAL, OR PUNITIVE DAMAGES WHATSOEVER — INCLUDING, WITHOUT
+LIMITATION, DAMAGES FOR LOSS OF PROFITS, DATA, GOODWILL, BUSINESS
+INTERRUPTION, OR OTHER INTANGIBLE LOSSES — ARISING OUT OF OR IN ANY
+WAY CONNECTED WITH THE USE OR INABILITY TO USE THE SOFTWARE, EVEN
+IF THE AUTHOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES,
+AND REGARDLESS OF THE LEGAL THEORY (CONTRACT, TORT, OR OTHERWISE)
+ON WHICH THE CLAIM IS BASED.
+
+──────────────────────────────────────────────────────────────────
+3. ASSUMPTION OF RISK AND USER RESPONSIBILITY
+──────────────────────────────────────────────────────────────────
+YOU, THE USER, ASSUME FULL AND SOLE RESPONSIBILITY AND RISK FOR:
+  (a) the selection, installation, configuration, and use of the
+      Software;
+  (b) any content you download, archive, mirror, convert, process,
+      or redistribute using the Software;
+  (c) ensuring that your use of the Software complies with all
+      applicable local, national, and international laws,
+      regulations, and third-party terms of service;
+  (d) obtaining any permissions, licenses, consents, or
+      authorizations required to access, archive, or redistribute
+      the websites and content you interact with.
+
+──────────────────────────────────────────────────────────────────
+4. LEGAL AND ETHICAL USE
+──────────────────────────────────────────────────────────────────
+The Software is intended solely for lawful purposes, such as:
+  (a) archiving websites you own or administer;
+  (b) archiving content you have explicit written permission to
+      archive;
+  (c) personal, private, offline viewing of content you are
+      legally permitted to access.
+
+You agree NOT to use the Software to:
+  (a) violate any law, statute, or regulation;
+  (b) infringe any copyright, trademark, trade secret, or other
+      intellectual property right;
+  (c) circumvent access controls, authentication mechanisms, or
+      technological protection measures;
+  (d) harass, defraud, stalk, or harm any individual or
+      organization;
+  (e) distribute malware, conduct unauthorized access, or engage
+      in any form of cyber abuse.
+
+──────────────────────────────────────────────────────────────────
+5. ROBOTS.TXT AND CRAWLING ETIQUETTE
+──────────────────────────────────────────────────────────────────
+The Software honors the robots.txt exclusion protocol and will
+refrain from fetching URLs disallowed by a target site's
+robots.txt file. Nonetheless, YOU remain solely responsible for
+ensuring that any crawling, mirroring, or archiving you perform is
+compliant with the target site's terms of service, its robots.txt
+directives, and all applicable laws and regulations.
+
+──────────────────────────────────────────────────────────────────
+6. NO SUPPORT / NO MAINTENANCE OBLIGATION
+──────────────────────────────────────────────────────────────────
+The author is under no obligation to provide support, updates,
+maintenance, bug fixes, patches, or enhancements for the Software.
+Any support provided is voluntary, at the author's sole
+discretion, and does not create any warranty or obligation.
+
+──────────────────────────────────────────────────────────────────
+7. INDEMNIFICATION
+──────────────────────────────────────────────────────────────────
+You agree to indemnify, defend, and hold harmless the author from
+and against any and all claims, damages, losses, liabilities,
+costs, and expenses (including reasonable attorneys' fees) arising
+out of or related to your use of the Software, your breach of this
+Agreement, or your violation of any law or third-party right.
+
+──────────────────────────────────────────────────────────────────
+8. SEVERABILITY AND ENTIRE AGREEMENT
+──────────────────────────────────────────────────────────────────
+If any provision of this Agreement is held to be unenforceable or
+invalid by a court of competent jurisdiction, that provision shall
+be severed and the remaining provisions shall remain in full force
+and effect. This Agreement constitutes the entire agreement between
+you and the author concerning the Software and supersedes any prior
+or contemporaneous understandings.
+
+──────────────────────────────────────────────────────────────────
+9. ACCEPTANCE
+──────────────────────────────────────────────────────────────────
+BY CLICKING "ACCEPT", YOU CONFIRM THAT YOU HAVE READ, UNDERSTOOD,
+AND AGREE TO BE BOUND BY THIS AGREEMENT. IF YOU DO NOT AGREE,
+CLICK "DECLINE & EXIT" AND THE SOFTWARE WILL NOT RUN.
+"""
 
 # ─────────────────────────────────────────────
 #  HELPERS
@@ -100,6 +233,70 @@ def data_uri(data_bytes, mime):
     return f"data:{mime};base64,{b64}"
 
 # ─────────────────────────────────────────────
+#  ROBOTS.TXT COMPLIANCE
+#  Every crawling operation checks robots.txt before fetching.
+#  Parsers are cached per-domain and accessed thread-safely.
+#  If robots.txt cannot be retrieved (network error, 404, etc.),
+#  the standard "fail-open" interpretation is applied: access is
+#  allowed, matching the behavior of mainstream crawlers.
+# ─────────────────────────────────────────────
+
+_ROBOTS_CACHE = {}
+_ROBOTS_LOCK  = threading.Lock()
+_ROBOTS_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+
+def _get_robots_parser(url):
+    """
+    Return a cached RobotFileParser for the URL's origin, or None.
+    A parser with .allow_all == True means "no restrictions".
+    """
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            return None
+        if parsed.scheme not in ('http', 'https'):
+            return None
+        root = f"{parsed.scheme}://{parsed.netloc}"
+
+        with _ROBOTS_LOCK:
+            if root in _ROBOTS_CACHE:
+                return _ROBOTS_CACHE[root]
+
+        rp = RobotFileParser()
+        robots_url = root + "/robots.txt"
+        rp.set_url(robots_url)
+        try:
+            headers = {'User-Agent': _ROBOTS_USER_AGENT}
+            resp = requests.get(robots_url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                rp.parse(resp.text.splitlines())
+            else:
+                # 404, 5xx, or anything else → no restrictions (standard behavior)
+                rp.allow_all = True
+        except Exception:
+            # Network error retrieving robots.txt → fail open (standard behavior)
+            rp.allow_all = True
+
+        with _ROBOTS_LOCK:
+            _ROBOTS_CACHE[root] = rp
+        return rp
+    except Exception:
+        return None
+
+def is_url_allowed(url, user_agent="*"):
+    """
+    Return True if robots.txt permits fetching `url` for `user_agent`.
+    Returns True if robots.txt cannot be determined (fail-open).
+    """
+    try:
+        rp = _get_robots_parser(url)
+        if rp is None:
+            return True
+        return rp.can_fetch(user_agent, url)
+    except Exception:
+        return True
+
+# ─────────────────────────────────────────────
 #  MEDIA DOWNLOADER
 # ─────────────────────────────────────────────
 
@@ -127,6 +324,10 @@ class MediaDownloader:
         except:
             pass
     def _fetch_bytes(self, url):
+        # ── robots.txt compliance check ──
+        if not is_url_allowed(url):
+            self.log(f"    🚫 Media blocked by robots.txt: {url}")
+            return None
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
             r = requests.get(url, headers=headers, timeout=20, stream=True)
@@ -241,6 +442,10 @@ class VBulletinBackup:
             json.dump(self.metadata, f, indent=2, ensure_ascii=False)
         self.force_gc()
     def get_page(self, url):
+        # ── robots.txt compliance check ──
+        if not is_url_allowed(url):
+            self.log(f"  🚫 Blocked by robots.txt: {url}")
+            return None
         session = response = None
         try:
             session = requests.Session()
@@ -997,7 +1202,7 @@ def build_html_output(all_threads, generated_at, forum_url=""):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="shortcut icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB2ElEQVR42t2RzU7bQBSFr0twyK+VJjRulTRR+wR9ARasuq+6gLLrorQB9hXqsqjP0j3KE7RKUie2oQiCG/8kKmDHdVEAO4TxXMYRGyTEA3A0o9HM6NO951x4gPoDkvA/Ln8KhG59ku8dTAq9g2C+W/cy6keNa2TvhV2+vUJyuoPzJmLRQhTZfmYhLfURnw8wLBv2MCUv3wmPEjvfMG8Skjcc+sT0/yXlmg6NogEt0c2q67Ri+qRiOPiiT07Tu19vwd6c8oU+NsduQlph8JmblmtuulOjJTO4LGo/EL7PuIKyHlbNkTMnv8OcMfZi6uYUtmPtRVY5tPnOm6PZ1gI+tagBv0RatnysDNAXu3UJ2rPHIBWYJXoUay0MZ6S3CHpoQ2PxEQIAcjetRBeOLS7goiN6T6SSr19VCzaBMQ+XAEAAMKRcAGO4gvDGQlLdRNEMnIS8REvWmZtV1qLUadXyacXyvaTywY2rGySuj1yu8/6c2/NPoPn5Vg6nmd0tLPcJS9qJAmOe1yIr0xB5dQN5wyegDc/hNz2G1hbcpWGqsxyWdBtfDpBW+9MxUsFEBiNCD0ewc/IXfi7BfdKgmfUEZTXIdbcnmcP9SUzbv4C9bRuaq4fsDx6ergG59xON7jX+PgAAAABJRU5ErkJggg==" />
 <title>✦ Arcane Forum Archive ✦</title>
-<style>{HTML_CSS}</style>
+<style type="text/css">{HTML_CSS}</style>
 </head>
 <body>
 <header id="site-header">
@@ -1020,7 +1225,7 @@ def build_html_output(all_threads, generated_at, forum_url=""):
 <footer>
   ✦ &nbsp; Generated by <span>Arcane Forum Archiver</span> &nbsp;·&nbsp; {generated_at} &nbsp; ✦
 </footer>
-<script>{HTML_JS}</script>
+<script type="text/javascript">{HTML_JS}</script>
 </body>
 </html>"""
 def convert_html_folder(input_dir, output_file, log_callback=None, progress_callback=None,
@@ -1529,6 +1734,11 @@ class MirrorCrawler:
                     self.queue.task_done()
                     continue
                 self.visited.add(url)
+            # ── robots.txt compliance check ──
+            if not is_url_allowed(url):
+                self.log(f"  🚫 Blocked by robots.txt: {url}")
+                self.queue.task_done()
+                continue
             try:
                 resp = self.session.get(url, timeout=12, stream=False)
                 time.sleep(self.delay)
@@ -2047,8 +2257,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="shortcut icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYBAMAAAASWSDLAAAAJFBMVEVHcEx0XuGbj/H78baDdeqTiPSOderBt+D9+ed4YeX05J2CWU+oLaUVAAAABXRSTlMAr6o1EcsNNRAAAACGSURBVBjTY2BgEUwDg0wBBgYGxpnp5SBQBuFkrQKBZTBOaGhoFYxTCuSkI3NSEZyOVgRnZkQHEmdGRygOTgQSJ6yjHcm0cmSjkexZDuREwd1WVVWFcCgIQL2QljYNCCCeSw0LBYEwEIcttBwCFIAcpuwVHSDQZQDmdEAAmBOGpIxFNRRmAABSBV17F4zEnwAAAABJRU5ErkJggg==" />
 <title>The Main — Grand Archive</title>
-<style>
+<style type="text/css">
 :root {{
   --gold: #d4af37;
   --gold-bright: #f4d970;
@@ -2721,7 +2932,7 @@ body {{
 
 <button id="toz-top-btn" title="Back to top">&#8593;</button>
 
-<script>
+<script type="text/javascript">
 (function() {{
   "use strict";
 
@@ -3050,6 +3261,12 @@ class ArcaneForumArchiver(tk.Tk):
         self.minsize(950, 800)
         self.configure(bg=BG_DEEP)
         self.resizable(True, True)
+        # ── Apply the custom application icon (Base64-encoded PNG) ──
+        try:
+            self._app_icon = tk.PhotoImage(data=APP_ICON_B64)
+            self.iconphoto(True, self._app_icon)
+        except Exception:
+            pass
         self._stop_event       = threading.Event()
         self._backup_obj       = None
         self._mi_stop          = threading.Event()
@@ -3985,11 +4202,146 @@ class ArcaneForumArchiver(tk.Tk):
         self.destroy()
 
 # ─────────────────────────────────────────────
+#  EULA DIALOG  (shown before the app starts)
+# ─────────────────────────────────────────────
+
+def _show_eula_dialog():
+    """
+    Standalone modal EULA dialog.
+    Returns True if the user accepts, False if they decline or close the window.
+    On any internal error, returns False so the app never runs without consent.
+    """
+    result = {"accepted": False}
+    try:
+        dlg = tk.Tk()
+    except Exception:
+        return False
+
+    try:
+        dlg.title("End User License Agreement — Arcane Forum Archiver")
+        dlg.geometry("820x660")
+        dlg.minsize(640, 500)
+        dlg.configure(bg=BG_DEEP)
+        dlg.resizable(True, True)
+
+        # ── Apply the custom EULA dialog icon (Base64-encoded PNG) ──
+        try:
+            dlg._eula_icon = tk.PhotoImage(data=EULA_ICON_B64)
+            dlg.iconphoto(True, dlg._eula_icon)
+        except Exception:
+            pass
+
+        # ── Header ──
+        header = tk.Canvas(dlg, height=100, bg=BG_DEEP, highlightthickness=0)
+        header.pack(fill="x")
+        def _draw_header(event=None):
+            header.delete("all")
+            w = header.winfo_width() or 820
+            cx = w // 2
+            header.create_text(cx, 30,
+                text="✦   END USER LICENSE AGREEMENT   ✦",
+                fill=ACCENT_GOLD,
+                font=("Palatino Linotype", 20, "bold"))
+            header.create_text(cx, 68,
+                text="Please read carefully before using the Arcane Forum Archiver",
+                fill=TEXT_DIM,
+                font=("Palatino Linotype", 12, "italic"))
+            header.create_line(30, 96, w-30, 96, fill=BORDER_GLOW, width=1)
+        header.bind("<Configure>", _draw_header)
+
+        # ── EULA text (scrollable) ──
+        txt_frame = tk.Frame(dlg, bg=BG_PANEL, bd=1, relief="groove")
+        txt_frame.pack(fill="both", expand=True, padx=20, pady=(0, 12))
+        sb = tk.Scrollbar(txt_frame, bg=BORDER_GLOW,
+                          troughcolor=BG_DEEP, activebackground=ACCENT_PURP)
+        sb.pack(side="right", fill="y")
+        txt = tk.Text(txt_frame, wrap="word",
+                      font=("Palatino Linotype", 12),
+                      bg=BG_PANEL, fg=TEXT_MAIN,
+                      insertbackground=ACCENT_GOLD,
+                      yscrollcommand=sb.set, bd=0, padx=16, pady=14)
+        txt.pack(side="left", fill="both", expand=True)
+        sb.config(command=txt.yview)
+        txt.insert("1.0", EULA_TEXT)
+        txt.config(state="disabled")
+
+        # ── Buttons ──
+        btn_frame = tk.Frame(dlg, bg=BG_DEEP)
+        btn_frame.pack(fill="x", padx=20, pady=(0, 18))
+
+        def _accept():
+            result["accepted"] = True
+            try: dlg.destroy()
+            except Exception: pass
+        def _decline():
+            result["accepted"] = False
+            try: dlg.destroy()
+            except Exception: pass
+
+        decline_btn = tk.Button(btn_frame, text="✕   DECLINE & EXIT",
+            command=_decline,
+            bg=RUNE_RED, fg=TEXT_MAIN,
+            activebackground=ACCENT_GOLD, activeforeground=BG_DEEP,
+            font=("Palatino Linotype", 12, "bold"),
+            relief="flat", bd=0, padx=24, pady=12, cursor="hand2")
+        decline_btn.pack(side="right", padx=(8, 0))
+
+        accept_btn = tk.Button(btn_frame, text="✓   ACCEPT",
+            command=_accept,
+            bg="#1a5a2e", fg=TEXT_MAIN,
+            activebackground=ACCENT_GOLD, activeforeground=BG_DEEP,
+            font=("Palatino Linotype", 12, "bold"),
+            relief="flat", bd=0, padx=24, pady=12, cursor="hand2")
+        accept_btn.pack(side="right")
+
+        hint = tk.Label(btn_frame,
+            text="You must accept this agreement to use the software.",
+            bg=BG_DEEP, fg=TEXT_DIM,
+            font=("Palatino Linotype", 10, "italic"))
+        hint.pack(side="left")
+
+        # Closing the window (X) = decline
+        dlg.protocol("WM_DELETE_WINDOW", _decline)
+
+        # ── Center on screen ──
+        try:
+            dlg.update_idletasks()
+            sw = dlg.winfo_screenwidth()
+            sh = dlg.winfo_screenheight()
+            w  = dlg.winfo_width()
+            h  = dlg.winfo_height()
+            x  = max(0, (sw - w) // 2)
+            y  = max(0, (sh - h) // 2)
+            dlg.geometry(f"{w}x{h}+{x}+{y}")
+        except Exception:
+            pass
+
+        # ── Focus / raise ──
+        try:
+            dlg.lift()
+            dlg.focus_force()
+        except Exception:
+            pass
+
+        # Block until dialog is dismissed
+        dlg.mainloop()
+    except Exception:
+        # On any unexpected error, do not allow the app to proceed
+        result["accepted"] = False
+        try: dlg.destroy()
+        except Exception: pass
+
+    return result["accepted"]
+
+# ─────────────────────────────────────────────
 #  ENTRY POINT
 # ─────────────────────────────────────────────
 
 def main():
     mp.freeze_support()
+    # ── Mandatory EULA: must be accepted before the app runs ──
+    if not _show_eula_dialog():
+        return
     app = ArcaneForumArchiver()
     app.mainloop()
 

@@ -63,7 +63,7 @@ pyinstaller --noconfirm --onefile --windowed \
 
 ```bash
 wine python -m PyInstaller --noconfirm --onefile --windowed \
---icon "icon.png" \
+--icon "icon.ico" \
 --name "ArcaneArchiver_Win" \
 --collect-all tkinter \
 --collect-all requests \
